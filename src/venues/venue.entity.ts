@@ -1,4 +1,10 @@
-import { Entity, PrimaryKey, Property, ManyToOne } from '@mikro-orm/core';
+import {
+  Entity,
+  PrimaryKey,
+  Property,
+  ManyToOne,
+  type Ref,
+} from '@mikro-orm/core';
 import { User } from '../users/user.entity';
 
 export enum VenueType {
@@ -42,7 +48,7 @@ export class Venue {
   isActive: boolean = true;
 
   @ManyToOne(() => User)
-  manager!: User;
+  manager!: Ref<User>;
 
   @Property()
   createdAt: Date = new Date();
