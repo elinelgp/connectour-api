@@ -205,9 +205,9 @@ src/
 │   └── venues.controller.ts
 ├── booking-requests/       # Domaine principal — demandes de contact
 │   ├── booking-request.entity.ts   # Entité + machine à états
-│   ├── booking-requests.service.spec.ts  # Tests TDD
-│   ├── booking-requests.service.ts
-│   └── booking-requests.controller.ts
+│   ├── booking-request.service.spec.ts  # Tests TDD
+│   ├── booking-request.service.ts
+│   └── booking-request.controller.ts
 ├── migrations/             # Historique des migrations MikroORM
 ├── mikro-orm.config.ts     # Configuration ORM
 ├── app.module.ts           # Module racine

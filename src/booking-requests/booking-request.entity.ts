@@ -1,4 +1,11 @@
-import { Entity, PrimaryKey, Property, ManyToOne, Enum } from '@mikro-orm/core';
+import {
+  Entity,
+  PrimaryKey,
+  Property,
+  ManyToOne,
+  Enum,
+  type Ref,
+} from '@mikro-orm/core';
 import { User } from '../users/user.entity';
 import { Venue } from '../venues/venue.entity';
 
@@ -29,10 +36,10 @@ export class BookingRequest {
   responseMessage?: string;
 
   @ManyToOne(() => User)
-  artist!: User;
+  artist!: Ref<User>;
 
   @ManyToOne(() => Venue)
-  venue!: Venue;
+  venue!: Ref<Venue>;
 
   @Property()
   createdAt: Date = new Date();
