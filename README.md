@@ -88,6 +88,18 @@ d'y greffer la couche d'auth. Cette dette technique est identifiée et document�
 — l'ajout de guards JWT ne nécessitera pas de modifier la logique métier, 
 seulement d'ajouter une couche de protection sur les endpoints existants.
 
+### Validation des entrées (class-validator + DTOs)
+Chaque endpoint valide ses données d'entrée via des classes DTO décorées
+(`class-validator`). Le pipe global (`ValidationPipe`) est activé avec :
+- **whitelist** : les champs non déclarés dans le DTO sont supprimés silencieusement
+- **forbidNonWhitelisted** : les champs inconnus provoquent une erreur 400 explicite
+- **transform** : les query params (strings) sont convertis automatiquement en types attendus (number, enum…)
+
+**Justification métier :** un artiste qui remplit un formulaire de demande de
+booking doit avoir un retour immédiat si ses données sont incomplètes (pas de
+message, pas de salle cible). Côté gestionnaire, on empêche l'injection de
+champs non prévus (principe de moindre surprise + sécurité).
+
 ### Migration de MikroORM v7 → v6
 
 MikroORM v7.0.0 a été **lancé le 11 mars 2026** — extrêmement récent. Le projet

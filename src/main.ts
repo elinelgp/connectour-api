@@ -1,13 +1,19 @@
 import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // ── Swagger ────────────────────────────────────────────────────────────────
-  // Justification métier : documentation vivante des contrats d'API,
-  // consultable par les futurs intégrateurs (frontend, partenaires).
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      forbidNonWhitelisted: true,
+    }),
+  );
+
   const config = new DocumentBuilder()
     .setTitle('Connectour API')
     .setDescription(
@@ -21,7 +27,6 @@ async function bootstrap() {
 
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
-  // ──────────────────────────────────────────────────────────────────────────
 
   await app.listen(process.env.PORT ?? 3000);
   console.log(
