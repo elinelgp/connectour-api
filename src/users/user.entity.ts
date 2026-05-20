@@ -7,7 +7,7 @@ export enum UserRole {
   PENDING = 'pending',
 }
 
-@Entity()
+@Entity({ tableName: 'app_user' })
 export class User {
   @PrimaryKey()
   id: string = crypto.randomUUID();

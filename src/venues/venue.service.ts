@@ -8,7 +8,6 @@ import {
 } from '@mikro-orm/core';
 import { Venue } from './venue.entity';
 import { User } from '../users/user.entity';
-import { ref } from '@mikro-orm/core';
 
 export interface SearchVenuesDto {
   city?: string;
@@ -60,7 +59,7 @@ export class VenueService {
 
     const venue = this.repo.create({
       ...venueData,
-      manager: ref(User, managerId),
+      manager: { id: managerId } as RequiredEntityData<User>,
       isActive: true,
     } as RequiredEntityData<Venue>);
 

@@ -4,7 +4,11 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { EntityRepository, EntityManager, ref } from '@mikro-orm/core';
+import {
+  EntityRepository,
+  EntityManager,
+  RequiredEntityData,
+} from '@mikro-orm/core';
 import { BookingRequest, BookingRequestStatus } from './booking-request.entity';
 import { User } from '../users/user.entity';
 import { Venue } from '../venues/venue.entity';
@@ -44,7 +48,6 @@ export class BookingRequestService {
   constructor(
     @InjectRepository(BookingRequest)
     private readonly repo: EntityRepository<BookingRequest>,
-    // EntityManager nécessaire pour persist/flush en MikroORM v6
     private readonly em: EntityManager,
   ) {}
 
@@ -53,10 +56,10 @@ export class BookingRequestService {
       message: dto.message,
       proposedDates: dto.proposedDates,
       status: BookingRequestStatus.PENDING,
-      artist: ref(User, dto.artistId),
-      venue: ref(Venue, dto.venueId),
-      createdAt: '',
-      updatedAt: '',
+      artist: { id: dto.artistId } as RequiredEntityData<User>,
+      venue: { id: dto.venueId } as RequiredEntityData<Venue>,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
     await this.em.persistAndFlush(br);
     return br;
