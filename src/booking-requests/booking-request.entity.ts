@@ -5,6 +5,7 @@ import {
   ManyToOne,
   Enum,
   type Ref,
+  Index,
 } from '@mikro-orm/core';
 import { User } from '../users/user.entity';
 import { Venue } from '../venues/venue.entity';
@@ -18,12 +19,14 @@ export enum BookingRequestStatus {
   CANCELLED = 'cancelled',
 }
 
-@Entity()
+@Entity({ tableName: 'booking_request' })
+@Index({ properties: ['artist', 'status'] })
 export class BookingRequest {
   @PrimaryKey()
   id: string = crypto.randomUUID();
 
   @Enum(() => BookingRequestStatus)
+  @Index()
   status: BookingRequestStatus = BookingRequestStatus.PENDING;
 
   @Property({ type: 'text' })

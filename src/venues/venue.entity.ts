@@ -4,6 +4,7 @@ import {
   Property,
   ManyToOne,
   type Ref,
+  Index,
 } from '@mikro-orm/core';
 import { User } from '../users/user.entity';
 
@@ -15,7 +16,8 @@ export enum VenueType {
   OTHER = 'other',
 }
 
-@Entity()
+@Entity({ tableName: 'venue' })
+@Index({ properties: ['city', 'capacity', 'isActive'] })
 export class Venue {
   @PrimaryKey()
   id: string = crypto.randomUUID();
@@ -24,6 +26,7 @@ export class Venue {
   name!: string;
 
   @Property()
+  @Index()
   city!: string;
 
   @Property({ nullable: true })
