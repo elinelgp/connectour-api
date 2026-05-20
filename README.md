@@ -5,8 +5,12 @@
 🚧 **MVP en cours**
 - Architecture de base ✅
 - Configuration ORM (MikroORM v6) ✅
-- Premières entités 🔄
-- Endpoints REST à venir
+- Entités métier (User, Venue, BookingRequest) ✅
+- Endpoints REST (Venues, BookingRequests) ✅
+- Docker Compose (PostgreSQL) ✅
+- Validation des entrées (DTOs) 🔄
+- Authentification JWT 🔄
+- Guards par rôle 🔄
 
 ---
 
@@ -106,9 +110,9 @@ valider complètement la compatibilité cross-stack avant la release.
 | Élément | Choix | Version |
 |---|---|---|
 | Runtime | Node.js | 20 |
-| Framework | NestJS | 10 |
+| Framework | NestJS | 11 |
 | Langage | TypeScript | 5 |
-| ORM | MikroORM | 7 |
+| ORM | MikroORM | 6.4 |
 | Base de données | PostgreSQL | 17 |
 | Documentation API | Swagger (OpenAPI) | — |
 | Tests | Jest | — |
@@ -120,11 +124,14 @@ valider complètement la compatibilité cross-stack avant la release.
 
 ### Prérequis
 - Node.js >= 20
-- PostgreSQL >= 13
+- Docker & Docker Compose (pour PostgreSQL)
 - pnpm
 
 ### Installation
 ```bash
+# Lancer PostgreSQL via Docker Compose
+docker compose up -d
+
 # Installer les dépendances
 pnpm install
 
