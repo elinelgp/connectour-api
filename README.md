@@ -9,8 +9,11 @@
 - Endpoints REST (Venues, BookingRequests, Users) ✅
 - Docker Compose (PostgreSQL) ✅
 - Validation des entrées (DTOs) ✅
-- Authentification JWT 🔄
-- Guards par rôle 🔄
+- Authentification JWT ✅
+- Guards par rôle ✅
+- Tests unitaires (Venue, BookingRequest, Auth) ✅
+- Migrations DB 🔄
+- Déploiement (Dockerfile + stratégie Azure) 🔄
 
 ---
 
@@ -220,8 +223,48 @@ valider complètement la compatibilité cross-stack avant la release.
 | ORM | MikroORM | 6.4 |
 | Base de données | PostgreSQL | 17 |
 | Documentation API | Swagger (OpenAPI) | — |
-| Tests | Jest | — |
+| Tests | Jest + ts-jest | — |
+| Auth | Passport JWT + bcrypt | — |
 | Gestionnaire de paquets | pnpm | — |
+
+---
+
+## Tests & TDD
+
+La stratégie de test repose sur des **tests unitaires isolés** : chaque service
+est testé sans dépendance à la base de données (mocks manuels). Ce pattern
+permet de valider la logique métier indépendamment de l'infrastructure.
+
+### Pattern de mock utilisé
+
+```typescript
+const mockRepo = { findOne: jest.fn(), create: jest.fn(), ... };
+const mockEm = { persistAndFlush: jest.fn(), flush: jest.fn() };
+service = new MyService(mockRepo as unknown as EntityRepository<...>, mockEm as unknown as EntityManager);
+```
+
+Avantages : pas de base de données au runtime, tests rapides, pas de `TestingModule` nécessaire.
+
+### Couverture
+
+| Service | Cas testés |
+|---|---|
+| `VenueService` | search sans filtre, filtres ville/capacité/genre, findOne, 404 |
+| `BookingRequestService` | create PENDING, transitions valides, transition illégale, 404, annulation artiste |
+| `AuthService` | register OK, hash mot de passe, email dupliqué (409), login OK, mauvais mot de passe (401), user inexistant (401), message anti-énumération |
+
+### Cycle TDD visible
+
+Le module `AuthService` a été développé en suivant le cycle TDD :
+1. **Test** — écrire le cas (`register doit hasher le mot de passe`)
+2. **Code** — implémenter `bcrypt.hash()` dans `auth.service.ts`
+3. **Refacto** — extraire `buildToken()` pour éviter la duplication
+
+```bash
+pnpm test           # lancer tous les tests
+pnpm test:watch     # mode watch (TDD)
+pnpm test:cov       # avec couverture de code
+```
 
 ---
 
