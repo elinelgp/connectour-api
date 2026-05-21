@@ -20,6 +20,8 @@ async function bootstrap() {
       'Module Booking Request — mise en relation artistes / salles de concert',
     )
     .setVersion('0.1.0')
+    .addBearerAuth()
+    .addTag('Auth')
     .addTag('Booking Requests')
     .addTag('Venues')
     .addTag('Users')

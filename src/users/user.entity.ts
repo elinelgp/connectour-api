@@ -1,4 +1,4 @@
-import { Entity, PrimaryKey, Property } from '@mikro-orm/core';
+import { Entity, PrimaryKey, Property, Enum } from '@mikro-orm/core';
 
 export enum UserRole {
   ARTIST = 'artist',
@@ -18,7 +18,10 @@ export class User {
   @Property()
   name!: string;
 
-  @Property()
+  @Property({ hidden: true })
+  password!: string;
+
+  @Enum(() => UserRole)
   role: UserRole = UserRole.PENDING;
 
   @Property({ nullable: true })

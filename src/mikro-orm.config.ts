@@ -9,7 +9,7 @@ export default defineConfig({
   port: Number(process.env.DB_PORT || 5433),
   dbName: process.env.DB_NAME ?? 'connectour_db',
   user: process.env.DB_USER ?? 'connectour_user',
-  password: process.env.DB_PASSWORD ?? 'connectour_pass',
+  password: process.env.DB_PASSWORD,
   entities: [User, Venue, BookingRequest],
   extensions: [Migrator],
   migrations: {
