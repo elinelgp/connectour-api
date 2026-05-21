@@ -5,11 +5,19 @@ import {
   Patch,
   Param,
   Body,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @ApiTags('Users')
 @Controller('users')
@@ -17,6 +25,8 @@ export class UserController {
   constructor(private readonly service: UserService) {}
 
   @Get()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Lister tous les utilisateurs' })
   @ApiResponse({ status: 200, description: 'Liste des utilisateurs.' })
   findAll() {
@@ -24,6 +34,8 @@ export class UserController {
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: "Récupérer un utilisateur par ID" })
   @ApiParam({ name: 'id', description: "UUID de l'utilisateur" })
   @ApiResponse({ status: 200, description: 'Utilisateur trouvé.' })
@@ -33,7 +45,7 @@ export class UserController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Créer un utilisateur' })
+  @ApiOperation({ summary: 'Créer un utilisateur (public, sans token requis)' })
   @ApiResponse({ status: 201, description: 'Utilisateur créé.' })
   @ApiResponse({ status: 400, description: 'Données invalides.' })
   create(@Body() dto: CreateUserDto) {
@@ -41,6 +53,8 @@ export class UserController {
   }
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Mettre à jour un utilisateur' })
   @ApiParam({ name: 'id', description: "UUID de l'utilisateur" })
   @ApiResponse({ status: 200, description: 'Utilisateur mis à jour.' })

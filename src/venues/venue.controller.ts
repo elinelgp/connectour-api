@@ -1,15 +1,22 @@
-import { Controller, Get, Post, Param, Body, Query } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, Query, UseGuards } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiParam,
   ApiResponse,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { VenueService } from './venue.service';
 import { CreateVenueDto } from './dto/create-venue.dto';
 import { SearchVenuesDto } from './dto/search-venues.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
+import { UserRole } from '../users/user.entity';
 
 @ApiTags('Venues')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('venues')
 export class VenueController {
   constructor(private readonly service: VenueService) {}
@@ -33,8 +40,10 @@ export class VenueController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Créer une salle (gestionnaire)' })
+  @Roles(UserRole.VENUE_MANAGER)
+  @ApiOperation({ summary: 'Créer une salle (gestionnaire uniquement)' })
   @ApiResponse({ status: 201, description: 'Salle créée.' })
+  @ApiResponse({ status: 403, description: 'Rôle VENUE_MANAGER requis.' })
   create(@Body() dto: CreateVenueDto) {
     return this.service.create(dto);
   }
