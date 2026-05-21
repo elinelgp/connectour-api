@@ -80,13 +80,78 @@ Plutôt que d'ajouter une dépendance `uuid`, on utilise l'API `crypto` native
 de Node.js 20. Moins de dépendances = moins de surface d'attaque et de
 maintenance.
 
-### Authentification — décision MVP
-L'authentification est volontairement hors périmètre de ce premier module.
-Il s'agit d'un **périmètre MVP défini dès le départ** : l'objectif est de
-valider la logique métier du module Booking Request de façon isolée, avant
-d'y greffer la couche d'auth. Cette dette technique est identifiée et documentée
-— l'ajout de guards JWT ne nécessitera pas de modifier la logique métier, 
-seulement d'ajouter une couche de protection sur les endpoints existants.
+### Authentification JWT
+
+L'API utilise une authentification **stateless par JWT** (JSON Web Token) :
+
+- **Register** (`POST /auth/register`) : crée un compte, hash le mot de passe
+  avec bcrypt (12 rounds), retourne un token JWT signé.
+- **Login** (`POST /auth/login`) : vérifie les credentials, retourne un token.
+- Le token contient `{ sub: userId, email, role }` et expire après 24h.
+
+**Workflow :**
+
+```
+┌─────────┐          ┌─────────┐          ┌────┐
+│  Client │          │   API   │          │ DB │
+└────┬────┘          └────┬────┘          └──┬─┘
+     │ POST /auth/register│                  │
+     │───────────────────►│                  │
+     │                    │ validate DTO     │
+     │                    │ findByEmail()    │
+     │                    │─────────────────►│
+     │                    │◄─────────────────│
+     │                    │ bcrypt.hash(12)  │
+     │                    │ persist user     │
+     │                    │─────────────────►│
+     │                    │ sign JWT         │
+     │◄───────────────────│                  │
+     │ { access_token }   │                  │
+     │                    │                  │
+     │ POST /auth/login   │                  │
+     │───────────────────►│                  │
+     │                    │ findByEmail()    │
+     │                    │─────────────────►│
+     │                    │◄─────────────────│
+     │                    │ bcrypt.compare() │
+     │                    │ sign JWT         │
+     │◄───────────────────│                  │
+     │ { access_token }   │                  │
+     │                    │                  │
+     │ GET /venues        │                  │
+     │ Bearer eyJ…        │                  │
+     │───────────────────►│                  │
+     │                    │ verify signature │
+     │                    │ check expiration │
+     │                    │ extract payload  │
+     │                    │ check role       │
+     │◄───────────────────│                  │
+     │ 200 [...]          │                  │
+```
+
+**Choix techniques :**
+- **bcrypt** : algorithme de hash adaptatif, résistant aux attaques brute-force
+  (cost factor 12 = ~250ms par hash, dissuasif pour un attaquant).
+- **JWT stateless** : pas de session serveur, scalabilité horizontale native.
+  Le secret est externalisé via `JWT_SECRET` (variable d'environnement).
+- **`hidden: true`** sur le champ `password` de l'entité User : MikroORM
+  n'inclura jamais le hash dans les sérialisations automatiques.
+- **Message d'erreur générique** : "Invalid credentials" que l'email ou le
+  password soit faux (empêche l'énumération d'utilisateurs).
+
+**Justification métier :** chaque acteur (artiste, gestionnaire, organisateur)
+doit être identifié de façon fiable avant de pouvoir envoyer ou traiter des
+demandes de booking. Sans auth, n'importe qui pourrait usurper une identité.
+
+**Améliorations futures identifiées :**
+
+| Amélioration | Raison | Priorité |
+|---|---|---|
+| Retirer `role` du `RegisterDto` | Empêcher un utilisateur de s'auto-attribuer un rôle privilégié. L'assignation devrait être réservée à un admin. | Haute |
+| Rate limiting (`@nestjs/throttler`) | Protéger `/auth/login` contre le brute-force (ex: max 5 tentatives/min/IP). | Haute |
+| Refresh token + rotation | Réduire la durée de vie de l'access token (15min) et offrir un mécanisme de renouvellement sécurisé. | Moyenne |
+| Validation force mot de passe | Exiger majuscule + chiffre + caractère spécial via `@Matches()`. | Moyenne |
+| HTTPS obligatoire | Empêcher l'interception du token en transit. À gérer au niveau infra (reverse proxy). | Prod |
 
 ### Validation des entrées (class-validator + DTOs)
 Chaque endpoint valide ses données d'entrée via des classes DTO décorées
