@@ -153,6 +153,34 @@ demandes de booking. Sans auth, n'importe qui pourrait usurper une identité.
 | Validation force mot de passe | Exiger majuscule + chiffre + caractère spécial via `@Matches()`. | Moyenne |
 | HTTPS obligatoire | Empêcher l'interception du token en transit. À gérer au niveau infra (reverse proxy). | Prod |
 
+### Sécurité & Autorisations
+
+Chaque endpoint est protégé par deux guards cumulatifs :
+1. **`JwtAuthGuard`** — vérifie la présence et la validité du token Bearer → 401 si absent/expiré/invalide
+2. **`RolesGuard`** — vérifie que le rôle du token correspond au rôle requis → 403 si insuffisant
+
+**Matrice des droits :**
+
+| Endpoint | Public | Authentifié | ARTIST | VENUE_MANAGER |
+|---|:---:|:---:|:---:|:---:|
+| `POST /auth/register` | ✅ | | | |
+| `POST /auth/login` | ✅ | | | |
+| `POST /users` | ✅ | | | |
+| `GET /users` | | ✅ | ✅ | ✅ |
+| `GET /users/:id` | | ✅ | ✅ | ✅ |
+| `PATCH /users/:id` | | ✅ | ✅ | ✅ |
+| `GET /venues` | | ✅ | ✅ | ✅ |
+| `GET /venues/:id` | | ✅ | ✅ | ✅ |
+| `POST /venues` | | | | ✅ |
+| `GET /booking-requests` | | ✅ | ✅ | ✅ |
+| `GET /booking-requests/:id` | | ✅ | ✅ | ✅ |
+| `POST /booking-requests` | | | ✅ | |
+| `PATCH /booking-requests/:id/status` | | | | ✅ |
+
+**Justification métier :** le principe de moindre privilège — chaque rôle n'a
+accès qu'aux actions qui lui correspondent métier. Un artiste ne peut pas créer
+une salle, un gestionnaire ne peut pas envoyer une demande à sa propre salle.
+
 ### Validation des entrées (class-validator + DTOs)
 Chaque endpoint valide ses données d'entrée via des classes DTO décorées
 (`class-validator`). Le pipe global (`ValidationPipe`) est activé avec :
