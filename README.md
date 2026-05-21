@@ -2,7 +2,7 @@
 
 ## Status
 
-🚧 **MVP en cours**
+**MVP**
 - Architecture de base ✅
 - Configuration ORM (MikroORM v6) ✅
 - Entités métier (User, Venue, BookingRequest) ✅
@@ -12,8 +12,7 @@
 - Authentification JWT ✅
 - Guards par rôle ✅
 - Tests unitaires (Venue, BookingRequest, Auth) ✅
-- Migrations DB 🔄
-- Déploiement (Dockerfile + stratégie Azure) 🔄
+- Déploiement (Dockerfile + stratégie Azure) ✅
 
 ---
 
@@ -378,10 +377,29 @@ src/
 │   └── dto/
 │       ├── create-booking-request.dto.ts
 │       └── update-status.dto.ts
+├── auth/                   # Authentification JWT
+│   ├── auth.module.ts
+│   ├── auth.service.ts
+│   ├── auth.service.spec.ts
+│   ├── auth.controller.ts
+│   ├── jwt.strategy.ts
+│   ├── jwt-auth.guard.ts
+│   ├── roles.guard.ts
+│   ├── roles.decorator.ts
+│   └── dto/
+│       ├── register.dto.ts
+│       └── login.dto.ts
 ├── migrations/             # Historique des migrations MikroORM
 ├── mikro-orm.config.ts     # Configuration ORM
 ├── app.module.ts           # Module racine
 └── main.ts                 # Point d'entrée
+
+Racine :
+├── Dockerfile              # Build multi-stage (Node 20 Alpine)
+├── .dockerignore
+├── docker-compose.yml      # PostgreSQL local
+├── .env.example
+└── ...
 ```
 
 ---
@@ -418,6 +436,63 @@ export class User {
 
 Une fois définie et compilée, MikroORM la découvrira automatiquement via le
 chemin configuré dans `mikro-orm.config.ts` : `['dist/**/*.entity.js']`
+
+---
+
+## Déploiement
+
+### Dockerfile (multi-stage)
+
+Le `Dockerfile` utilise un build multi-stage pour minimiser la taille de l'image finale :
+
+| Stage | Base | Rôle | Taille ≈ |
+|---|---|---|---|
+| `builder` | `node:20-alpine` | Install + compile TypeScript | ~400 MB |
+| `production` | `node:20-alpine` | Runtime uniquement (dist + node_modules prod) | ~150 MB |
+
+**Sécurité :**
+- Exécution en tant qu'utilisateur non-root (`appuser`)
+- `dumb-init` comme PID 1 (gestion propre des signaux SIGTERM/SIGINT)
+- Pas de code source dans l'image finale
+- `.dockerignore` exclut `.env`, `node_modules`, `test/`, `.git`
+
+### Usage local
+
+```bash
+# Build
+docker build -t connectour-api .
+
+# Run (nécessite une DB PostgreSQL accessible)
+docker run --env-file .env -p 3000:3000 connectour-api
+
+# Ou avec docker compose (API + DB)
+docker compose up -d
+```
+
+### Stratégie de déploiement Azure (cible)
+
+| Service Azure | Usage |
+|---|---|
+| **Azure Container Apps** | Hébergement de l'image Docker (serverless, auto-scale) |
+| **Azure Database for PostgreSQL — Flexible Server** | Base managée (backups auto, HA) |
+| **Azure Container Registry (ACR)** | Stockage privé de l'image |
+| **GitHub Actions** | CI/CD : test → build → push ACR → deploy |
+
+**Pipeline CI/CD envisagé :**
+```
+push main → GitHub Actions:
+  1. pnpm install
+  2. pnpm test
+  3. pnpm build
+  4. docker build + push → ACR
+  5. az containerapp update --image <new-tag>
+```
+
+**Variables d'environnement en production :**
+- `JWT_SECRET` : secret fort (≥ 32 caractères), stocké dans Azure Key Vault
+- `DB_*` : injectées depuis la configuration Azure Database
+- `NODE_ENV=production`
+- `PORT=3000`
 
 ---
 
