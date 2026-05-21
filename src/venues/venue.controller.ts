@@ -2,45 +2,25 @@ import { Controller, Get, Post, Param, Body, Query } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
-  ApiQuery,
   ApiParam,
   ApiResponse,
 } from '@nestjs/swagger';
-import * as venueService from './venue.service';
+import { VenueService } from './venue.service';
+import { CreateVenueDto } from './dto/create-venue.dto';
+import { SearchVenuesDto } from './dto/search-venues.dto';
 
 @ApiTags('Venues')
 @Controller('venues')
 export class VenueController {
-  constructor(private readonly service: venueService.VenueService) {}
+  constructor(private readonly service: VenueService) {}
 
   @Get()
   @ApiOperation({ summary: 'Rechercher des salles avec filtres optionnels' })
-  @ApiQuery({ name: 'city', required: false, description: 'Ville de la salle' })
-  @ApiQuery({
-    name: 'minCapacity',
-    required: false,
-    description: 'Capacité minimale',
-  })
-  @ApiQuery({
-    name: 'genre',
-    required: false,
-    description: 'Genre musical accepté',
-  })
   @ApiResponse({
     status: 200,
     description: 'Liste des salles correspondantes.',
   })
-  search(
-    @Query('city') city?: string,
-    @Query('minCapacity') minCapacity?: string,
-    @Query('genre') genre?: string,
-  ) {
-    const dto: venueService.SearchVenuesDto = {
-      city,
-      genre,
-      // Query params arrivent en string — on convertit explicitement
-      minCapacity: minCapacity ? parseInt(minCapacity, 10) : undefined,
-    };
+  search(@Query() dto: SearchVenuesDto) {
     return this.service.search(dto);
   }
 
@@ -55,7 +35,7 @@ export class VenueController {
   @Post()
   @ApiOperation({ summary: 'Créer une salle (gestionnaire)' })
   @ApiResponse({ status: 201, description: 'Salle créée.' })
-  create(@Body() dto: venueService.CreateVenueDto) {
+  create(@Body() dto: CreateVenueDto) {
     return this.service.create(dto);
   }
 }
