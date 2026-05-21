@@ -46,10 +46,11 @@ Ce module couvre :
 - La recherche filtrée de salles (ville, capacité, genre, période)
 - La création de demandes unitaires et groupées
 - Le suivi du statut via une machine à états métier
+- L'authentification JWT et le contrôle d'accès par rôle
 - La documentation des endpoints via Swagger
 
 Ce module ne couvre pas (itérations prévues) :
-- L'authentification et la gestion des sessions (JWT / Google SSO)
+- Le SSO externe (Google / Azure Entra) et la gestion avancée des sessions
 - La messagerie intégrée entre artistes et salles
 - Les notifications automatiques et relances
 - La génération de contrats et la signature électronique
@@ -145,11 +146,13 @@ L'API utilise une authentification **stateless par JWT** (JSON Web Token) :
 doit être identifié de façon fiable avant de pouvoir envoyer ou traiter des
 demandes de booking. Sans auth, n'importe qui pourrait usurper une identité.
 
+L'inscription publique via `POST /auth/register` attribue désormais par défaut
+le rôle `ARTIST`. Les rôles plus sensibles passent par un provisioning interne.
+
 **Améliorations futures identifiées :**
 
 | Amélioration | Raison | Priorité |
 |---|---|---|
-| Retirer `role` du `RegisterDto` | Empêcher un utilisateur de s'auto-attribuer un rôle privilégié. L'assignation devrait être réservée à un admin. | Haute |
 | Rate limiting (`@nestjs/throttler`) | Protéger `/auth/login` contre le brute-force (ex: max 5 tentatives/min/IP). | Haute |
 | Refresh token + rotation | Réduire la durée de vie de l'access token (15min) et offrir un mécanisme de renouvellement sécurisé. | Moyenne |
 | Validation force mot de passe | Exiger majuscule + chiffre + caractère spécial via `@Matches()`. | Moyenne |
@@ -163,21 +166,21 @@ Chaque endpoint est protégé par deux guards cumulatifs :
 
 **Matrice des droits :**
 
-| Endpoint | Public | Authentifié | ARTIST | VENUE_MANAGER |
-|---|:---:|:---:|:---:|:---:|
+| Endpoint | Public | Authentifié | ARTIST | VENUE_MANAGER | ORGANIZER |
+|---|:---:|:---:|:---:|:---:|:---:|
 | `POST /auth/register` | ✅ | | | |
 | `POST /auth/login` | ✅ | | | |
-| `POST /users` | ✅ | | | |
-| `GET /users` | | ✅ | ✅ | ✅ |
-| `GET /users/:id` | | ✅ | ✅ | ✅ |
-| `PATCH /users/:id` | | ✅ | ✅ | ✅ |
-| `GET /venues` | | ✅ | ✅ | ✅ |
-| `GET /venues/:id` | | ✅ | ✅ | ✅ |
-| `POST /venues` | | | | ✅ |
-| `GET /booking-requests` | | ✅ | ✅ | ✅ |
-| `GET /booking-requests/:id` | | ✅ | ✅ | ✅ |
-| `POST /booking-requests` | | | ✅ | |
-| `PATCH /booking-requests/:id/status` | | | | ✅ |
+| `POST /users` | | ✅ | | | ✅ |
+| `GET /users` | | ✅ | ✅ | ✅ | ✅ |
+| `GET /users/:id` | | ✅ | ✅ | ✅ | ✅ |
+| `PATCH /users/:id` | | ✅ | ✅ | ✅ | ✅ |
+| `GET /venues` | | ✅ | ✅ | ✅ | ✅ |
+| `GET /venues/:id` | | ✅ | ✅ | ✅ | ✅ |
+| `POST /venues` | | | | ✅ | |
+| `GET /booking-requests` | | ✅ | ✅ | ✅ | ✅ |
+| `GET /booking-requests/:id` | | ✅ | ✅ | ✅ | ✅ |
+| `POST /booking-requests` | | | ✅ | | |
+| `PATCH /booking-requests/:id/status` | | | | ✅ | |
 
 **Justification métier :** le principe de moindre privilège — chaque rôle n'a
 accès qu'aux actions qui lui correspondent métier. Un artiste ne peut pas créer
@@ -330,6 +333,8 @@ pnpm migration:down
 # Voir la liste des migrations
 pnpm migration:list
 ```
+
+Une migration initiale versionne déjà le schéma de départ dans `src/migrations/`.
 
 ### Tests
 ```bash

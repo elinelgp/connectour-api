@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import {
   EntityRepository,
@@ -29,6 +29,8 @@ export interface CreateVenueDto {
 
 @Injectable()
 export class VenueService {
+  private readonly logger = new Logger(VenueService.name);
+
   constructor(
     @InjectRepository(Venue)
     private readonly repo: EntityRepository<Venue>,
@@ -64,6 +66,7 @@ export class VenueService {
     } as RequiredEntityData<Venue>);
 
     await this.em.persistAndFlush(venue);
+    this.logger.log(`Venue created: ${venue.id} managedBy=${managerId}`);
     return venue;
   }
 }

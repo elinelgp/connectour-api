@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import {
@@ -45,6 +46,8 @@ const ALLOWED_TRANSITIONS: Record<
 
 @Injectable()
 export class BookingRequestService {
+  private readonly logger = new Logger(BookingRequestService.name);
+
   constructor(
     @InjectRepository(BookingRequest)
     private readonly repo: EntityRepository<BookingRequest>,
@@ -62,6 +65,9 @@ export class BookingRequestService {
       updatedAt: new Date(),
     });
     await this.em.persistAndFlush(br);
+    this.logger.log(
+      `Booking request created: ${br.id} artist=${dto.artistId} venue=${dto.venueId}`,
+    );
     return br;
   }
 
@@ -95,6 +101,7 @@ export class BookingRequestService {
 
     br.status = newStatus;
     await this.em.flush();
+    this.logger.log(`Booking request ${id} status updated to ${newStatus}`);
     return br;
   }
 }

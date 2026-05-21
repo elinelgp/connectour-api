@@ -1,10 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityRepository, EntityManager } from '@mikro-orm/core';
 import { User } from './user.entity';
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);
+
   constructor(
     @InjectRepository(User)
     private readonly repo: EntityRepository<User>,
@@ -28,6 +30,7 @@ export class UserService {
   async create(data: Partial<User>): Promise<User> {
     const user = this.repo.create(data as User);
     await this.em.persistAndFlush(user);
+    this.logger.log(`User created: ${user.id}`);
     return user;
   }
 
@@ -35,6 +38,7 @@ export class UserService {
     const user = await this.findOne(id);
     this.em.assign(user, data);
     await this.em.flush();
+    this.logger.log(`User updated: ${user.id}`);
     return user;
   }
 }

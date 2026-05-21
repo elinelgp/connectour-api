@@ -1,9 +1,11 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
 async function bootstrap() {
+  const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
 
   app.useGlobalPipes(
@@ -13,6 +15,7 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
+  app.useGlobalFilters(new GlobalExceptionFilter());
 
   const config = new DocumentBuilder()
     .setTitle('Connectour API')
@@ -31,10 +34,10 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, document);
 
   await app.listen(process.env.PORT ?? 3000);
-  console.log(
+  logger.log(
     `🚀 Connectour API running on http://localhost:${process.env.PORT ?? 3000}`,
   );
-  console.log(
+  logger.log(
     `📚 Swagger disponible sur http://localhost:${process.env.PORT ?? 3000}/api`,
   );
 }

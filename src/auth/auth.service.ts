@@ -2,16 +2,19 @@ import {
   Injectable,
   UnauthorizedException,
   ConflictException,
+  Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UserService } from '../users/user.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import { User } from '../users/user.entity';
+import { User, UserRole } from '../users/user.entity';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
@@ -20,6 +23,7 @@ export class AuthService {
   async register(dto: RegisterDto): Promise<{ access_token: string }> {
     const existing = await this.userService.findByEmail(dto.email);
     if (existing) {
+      this.logger.warn(`Registration refused for existing email ${dto.email}`);
       throw new ConflictException('Email already registered');
     }
 
@@ -29,9 +33,11 @@ export class AuthService {
       email: dto.email,
       name: dto.name,
       password: hashedPassword,
-      role: dto.role,
+      role: UserRole.ARTIST,
       city: dto.city,
     });
+
+    this.logger.log(`User registered with artist role: ${user.id}`);
 
     return this.buildToken(user);
   }
@@ -39,13 +45,17 @@ export class AuthService {
   async login(dto: LoginDto): Promise<{ access_token: string }> {
     const user = await this.userService.findByEmail(dto.email);
     if (!user) {
+      this.logger.warn(`Login failed for unknown email ${dto.email}`);
       throw new UnauthorizedException('Invalid credentials');
     }
 
     const isValid = await bcrypt.compare(dto.password, user.password);
     if (!isValid) {
+      this.logger.warn(`Login failed for user ${user.id}`);
       throw new UnauthorizedException('Invalid credentials');
     }
+
+    this.logger.log(`User logged in: ${user.id}`);
 
     return this.buildToken(user);
   }
