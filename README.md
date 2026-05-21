@@ -6,9 +6,9 @@
 - Architecture de base ✅
 - Configuration ORM (MikroORM v6) ✅
 - Entités métier (User, Venue, BookingRequest) ✅
-- Endpoints REST (Venues, BookingRequests) ✅
+- Endpoints REST (Venues, BookingRequests, Users) ✅
 - Docker Compose (PostgreSQL) ✅
-- Validation des entrées (DTOs) 🔄
+- Validation des entrées (DTOs) ✅
 - Authentification JWT 🔄
 - Guards par rôle 🔄
 
@@ -217,16 +217,31 @@ pnpm test:e2e
 ```
 src/
 ├── users/                  # Domaine utilisateur
-│   └── user.entity.ts
+│   ├── user.entity.ts
+│   ├── user.module.ts
+│   ├── user.service.ts
+│   ├── user.controller.ts
+│   └── dto/
+│       ├── create-user.dto.ts
+│       └── update-user.dto.ts
 ├── venues/                 # Domaine salle de concert
 │   ├── venue.entity.ts
-│   ├── venues.service.ts
-│   └── venues.controller.ts
+│   ├── venue.module.ts
+│   ├── venue.service.ts
+│   ├── venue.service.spec.ts
+│   ├── venue.controller.ts
+│   └── dto/
+│       ├── create-venue.dto.ts
+│       └── search-venues.dto.ts
 ├── booking-requests/       # Domaine principal — demandes de contact
-│   ├── booking-request.entity.ts   # Entité + machine à états
-│   ├── booking-request.service.spec.ts  # Tests TDD
+│   ├── booking-request.entity.ts
+│   ├── booking-request.module.ts
 │   ├── booking-request.service.ts
-│   └── booking-request.controller.ts
+│   ├── booking-request.service.spec.ts
+│   ├── booking-request.controller.ts
+│   └── dto/
+│       ├── create-booking-request.dto.ts
+│       └── update-status.dto.ts
 ├── migrations/             # Historique des migrations MikroORM
 ├── mikro-orm.config.ts     # Configuration ORM
 ├── app.module.ts           # Module racine
@@ -267,6 +282,51 @@ export class User {
 
 Une fois définie et compilée, MikroORM la découvrira automatiquement via le
 chemin configuré dans `mikro-orm.config.ts` : `['dist/**/*.entity.js']`
+
+---
+
+## Modèle Conceptuel de Données (MCD)
+
+```mermaid
+erDiagram
+    USER {
+        uuid id PK
+        string email UK
+        string name
+        enum role
+        string city
+        string bio
+        datetime createdAt
+        datetime updatedAt
+    }
+    VENUE {
+        uuid id PK
+        string name
+        string city
+        string address
+        int capacity
+        enum type
+        string[] acceptedGenres
+        string description
+        number typicalFee
+        boolean isActive
+        datetime createdAt
+        datetime updatedAt
+    }
+    BOOKING_REQUEST {
+        uuid id PK
+        enum status
+        text message
+        json proposedDates
+        text responseMessage
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    USER ||--o{ VENUE : "manages"
+    USER ||--o{ BOOKING_REQUEST : "sends"
+    VENUE ||--o{ BOOKING_REQUEST : "receives"
+```
 
 ---
 
