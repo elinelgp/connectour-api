@@ -1,19 +1,18 @@
 # Connectour API — Module Booking Request
 
-## Status
+## Statut
 
-🚧 **MVP en cours**
+✅ **MVP livré**
 - Architecture de base ✅
 - Configuration ORM (MikroORM v6) ✅
-- Entités métier (User, Venue, BookingRequest) ✅
-- Endpoints REST (Venues, BookingRequests, Users) ✅
-- Docker Compose (PostgreSQL) ✅
-- Validation des entrées (DTOs) ✅
-- Authentification JWT ✅
-- Guards par rôle ✅
-- Tests unitaires (Venue, BookingRequest, Auth) ✅
-- Migrations DB 🔄
-- Déploiement (Dockerfile + stratégie Azure) 🔄
+- Entités métier ✅
+- Services + logique métier ✅
+- Tests unitaires TDD ✅
+- Endpoints REST + Swagger ✅
+- Authentification JWT + guards ✅
+- Validation DTOs ✅
+- Migration BDD versionnée ✅
+- Dockerfile + stratégie Azure ✅
 
 ---
 
@@ -47,10 +46,11 @@ Ce module couvre :
 - La recherche filtrée de salles (ville, capacité, genre, période)
 - La création de demandes unitaires et groupées
 - Le suivi du statut via une machine à états métier
+- L'authentification JWT et le contrôle d'accès par rôle
 - La documentation des endpoints via Swagger
 
 Ce module ne couvre pas (itérations prévues) :
-- L'authentification et la gestion des sessions (JWT / Google SSO)
+- Le SSO externe (Google / Azure Entra) et la gestion avancée des sessions
 - La messagerie intégrée entre artistes et salles
 - Les notifications automatiques et relances
 - La génération de contrats et la signature électronique
@@ -146,11 +146,13 @@ L'API utilise une authentification **stateless par JWT** (JSON Web Token) :
 doit être identifié de façon fiable avant de pouvoir envoyer ou traiter des
 demandes de booking. Sans auth, n'importe qui pourrait usurper une identité.
 
+L'inscription publique via `POST /auth/register` attribue désormais par défaut
+le rôle `ARTIST`. Les rôles plus sensibles passent par un provisioning interne.
+
 **Améliorations futures identifiées :**
 
 | Amélioration | Raison | Priorité |
 |---|---|---|
-| Retirer `role` du `RegisterDto` | Empêcher un utilisateur de s'auto-attribuer un rôle privilégié. L'assignation devrait être réservée à un admin. | Haute |
 | Rate limiting (`@nestjs/throttler`) | Protéger `/auth/login` contre le brute-force (ex: max 5 tentatives/min/IP). | Haute |
 | Refresh token + rotation | Réduire la durée de vie de l'access token (15min) et offrir un mécanisme de renouvellement sécurisé. | Moyenne |
 | Validation force mot de passe | Exiger majuscule + chiffre + caractère spécial via `@Matches()`. | Moyenne |
@@ -164,21 +166,21 @@ Chaque endpoint est protégé par deux guards cumulatifs :
 
 **Matrice des droits :**
 
-| Endpoint | Public | Authentifié | ARTIST | VENUE_MANAGER |
-|---|:---:|:---:|:---:|:---:|
+| Endpoint | Public | Authentifié | ARTIST | VENUE_MANAGER | ORGANIZER |
+|---|:---:|:---:|:---:|:---:|:---:|
 | `POST /auth/register` | ✅ | | | |
 | `POST /auth/login` | ✅ | | | |
-| `POST /users` | ✅ | | | |
-| `GET /users` | | ✅ | ✅ | ✅ |
-| `GET /users/:id` | | ✅ | ✅ | ✅ |
-| `PATCH /users/:id` | | ✅ | ✅ | ✅ |
-| `GET /venues` | | ✅ | ✅ | ✅ |
-| `GET /venues/:id` | | ✅ | ✅ | ✅ |
-| `POST /venues` | | | | ✅ |
-| `GET /booking-requests` | | ✅ | ✅ | ✅ |
-| `GET /booking-requests/:id` | | ✅ | ✅ | ✅ |
-| `POST /booking-requests` | | | ✅ | |
-| `PATCH /booking-requests/:id/status` | | | | ✅ |
+| `POST /users` | | ✅ | | | ✅ |
+| `GET /users` | | ✅ | ✅ | ✅ | ✅ |
+| `GET /users/:id` | | ✅ | ✅ | ✅ | ✅ |
+| `PATCH /users/:id` | | ✅ | ✅ | ✅ | ✅ |
+| `GET /venues` | | ✅ | ✅ | ✅ | ✅ |
+| `GET /venues/:id` | | ✅ | ✅ | ✅ | ✅ |
+| `POST /venues` | | | | ✅ | |
+| `GET /booking-requests` | | ✅ | ✅ | ✅ | ✅ |
+| `GET /booking-requests/:id` | | ✅ | ✅ | ✅ | ✅ |
+| `POST /booking-requests` | | | ✅ | | |
+| `PATCH /booking-requests/:id/status` | | | | ✅ | |
 
 **Justification métier :** le principe de moindre privilège — chaque rôle n'a
 accès qu'aux actions qui lui correspondent métier. Un artiste ne peut pas créer
@@ -224,8 +226,10 @@ valider complètement la compatibilité cross-stack avant la release.
 | Base de données | PostgreSQL | 17 |
 | Documentation API | Swagger (OpenAPI) | — |
 | Tests | Jest + ts-jest | — |
-| Auth | Passport JWT + bcrypt | — |
-| Gestionnaire de paquets | pnpm | — |
+| Auth         | Passport JWT + bcrypt      | —  |
+| Validation   | class-validator + class-transformer | — |
+| Conteneur    | Docker + Docker Compose    | —  || Gestionnaire de paquets | pnpm | — |
+
 
 ---
 
@@ -332,6 +336,8 @@ pnpm migration:down
 pnpm migration:list
 ```
 
+Une migration initiale versionne déjà le schéma de départ dans `src/migrations/`.
+
 ### Tests
 ```bash
 # Lancer les tests
@@ -378,46 +384,95 @@ src/
 │   └── dto/
 │       ├── create-booking-request.dto.ts
 │       └── update-status.dto.ts
+├── auth/                   # Authentification JWT
+│   ├── auth.module.ts
+│   ├── auth.service.ts
+│   ├── auth.service.spec.ts
+│   ├── auth.controller.ts
+│   ├── jwt.strategy.ts
+│   ├── jwt-auth.guard.ts
+│   ├── roles.guard.ts
+│   ├── roles.decorator.ts
+│   └── dto/
+│       ├── register.dto.ts
+│       └── login.dto.ts
 ├── migrations/             # Historique des migrations MikroORM
 ├── mikro-orm.config.ts     # Configuration ORM
 ├── app.module.ts           # Module racine
 └── main.ts                 # Point d'entrée
+
+Racine :
+├── Dockerfile              # Build multi-stage (Node 20 Alpine)
+├── .dockerignore
+├── docker-compose.yml      # PostgreSQL local
+├── .env.example
+└── ...
 ```
+## Dette technique identifiée
+
+| Sujet | Description | Priorité |
+|---|---|---|
+| Rate limiting | `/auth/login` non protégé contre le brute-force | Haute |
+| Refresh token | Access token 24h — durée trop longue pour la prod | Moyenne |
+| Demandes groupées | Bulk booking non implémenté (prévu MVP+1) | Basse |
+| SSO externe | Google / Azure Entra non implémenté | Basse |
 
 ---
 
-## Exemple — Créer une première entité
+## Déploiement
 
-MikroORM utilise des décorateurs TypeScript pour mapper les entités.
-Voici un exemple simplifié d'une entité `User` :
+### Dockerfile (multi-stage)
 
-```typescript
-import { Entity, PrimaryKey, Property } from '@mikro-orm/core';
+Le `Dockerfile` utilise un build multi-stage pour minimiser la taille de l'image finale :
 
-@Entity()
-export class User {
-  @PrimaryKey()
-  id: string = crypto.randomUUID();
+| Stage | Base | Rôle | Taille ≈ |
+|---|---|---|---|
+| `builder` | `node:20-alpine` | Install + compile TypeScript | ~400 MB |
+| `production` | `node:20-alpine` | Runtime uniquement (dist + node_modules prod) | ~150 MB |
 
-  @Property()
-  email!: string;
+**Sécurité :**
+- Exécution en tant qu'utilisateur non-root (`appuser`)
+- `dumb-init` comme PID 1 (gestion propre des signaux SIGTERM/SIGINT)
+- Pas de code source dans l'image finale
+- `.dockerignore` exclut `.env`, `node_modules`, `test/`, `.git`
 
-  @Property()
-  name!: string;
+### Usage local
 
-  @Property({ type: 'date', nullable: true })
-  createdAt = new Date();
-}
+```bash
+# Build
+docker build -t connectour-api .
+
+# Run (nécessite une DB PostgreSQL accessible)
+docker run --env-file .env -p 3000:3000 connectour-api
+
+# Ou avec docker compose (API + DB)
+docker compose up -d
 ```
 
-**Points clés :**
-- `@Entity()` : Marque la classe comme entité MikroORM
-- `@PrimaryKey()` : Clé primaire (ici UUID natif)
-- `@Property()` : Propriétés mappées en colonnes
-- `!` : Propriété obligatoire (typage strict TypeScript)
+### Stratégie de déploiement Azure (cible)
 
-Une fois définie et compilée, MikroORM la découvrira automatiquement via le
-chemin configuré dans `mikro-orm.config.ts` : `['dist/**/*.entity.js']`
+| Service Azure | Usage |
+|---|---|
+| **Azure Container Apps** | Hébergement de l'image Docker (serverless, auto-scale) |
+| **Azure Database for PostgreSQL — Flexible Server** | Base managée (backups auto, HA) |
+| **Azure Container Registry (ACR)** | Stockage privé de l'image |
+| **GitHub Actions** | CI/CD : test → build → push ACR → deploy |
+
+**Pipeline CI/CD envisagé :**
+```
+push main → GitHub Actions:
+  1. pnpm install
+  2. pnpm test
+  3. pnpm build
+  4. docker build + push → ACR
+  5. az containerapp update --image <new-tag>
+```
+
+**Variables d'environnement en production :**
+- `JWT_SECRET` : secret fort (≥ 32 caractères), stocké dans Azure Key Vault
+- `DB_*` : injectées depuis la configuration Azure Database
+- `NODE_ENV=production`
+- `PORT=3000`
 
 ---
 
