@@ -1,18 +1,18 @@
 # Connectour API — Module Booking Request
 
-## Status
+## Statut
 
-**MVP**
+✅ **MVP livré**
 - Architecture de base ✅
 - Configuration ORM (MikroORM v6) ✅
-- Entités métier (User, Venue, BookingRequest) ✅
-- Endpoints REST (Venues, BookingRequests, Users) ✅
-- Docker Compose (PostgreSQL) ✅
-- Validation des entrées (DTOs) ✅
-- Authentification JWT ✅
-- Guards par rôle ✅
-- Tests unitaires (Venue, BookingRequest, Auth) ✅
-- Déploiement (Dockerfile + stratégie Azure) ✅
+- Entités métier ✅
+- Services + logique métier ✅
+- Tests unitaires TDD ✅
+- Endpoints REST + Swagger ✅
+- Authentification JWT + guards ✅
+- Validation DTOs ✅
+- Migration BDD versionnée ✅
+- Dockerfile + stratégie Azure ✅
 
 ---
 
@@ -226,8 +226,10 @@ valider complètement la compatibilité cross-stack avant la release.
 | Base de données | PostgreSQL | 17 |
 | Documentation API | Swagger (OpenAPI) | — |
 | Tests | Jest + ts-jest | — |
-| Auth | Passport JWT + bcrypt | — |
-| Gestionnaire de paquets | pnpm | — |
+| Auth         | Passport JWT + bcrypt      | —  |
+| Validation   | class-validator + class-transformer | — |
+| Conteneur    | Docker + Docker Compose    | —  || Gestionnaire de paquets | pnpm | — |
+
 
 ---
 
@@ -406,41 +408,14 @@ Racine :
 ├── .env.example
 └── ...
 ```
+## Dette technique identifiée
 
----
-
-## Exemple — Créer une première entité
-
-MikroORM utilise des décorateurs TypeScript pour mapper les entités.
-Voici un exemple simplifié d'une entité `User` :
-
-```typescript
-import { Entity, PrimaryKey, Property } from '@mikro-orm/core';
-
-@Entity()
-export class User {
-  @PrimaryKey()
-  id: string = crypto.randomUUID();
-
-  @Property()
-  email!: string;
-
-  @Property()
-  name!: string;
-
-  @Property({ type: 'date', nullable: true })
-  createdAt = new Date();
-}
-```
-
-**Points clés :**
-- `@Entity()` : Marque la classe comme entité MikroORM
-- `@PrimaryKey()` : Clé primaire (ici UUID natif)
-- `@Property()` : Propriétés mappées en colonnes
-- `!` : Propriété obligatoire (typage strict TypeScript)
-
-Une fois définie et compilée, MikroORM la découvrira automatiquement via le
-chemin configuré dans `mikro-orm.config.ts` : `['dist/**/*.entity.js']`
+| Sujet | Description | Priorité |
+|---|---|---|
+| Rate limiting | `/auth/login` non protégé contre le brute-force | Haute |
+| Refresh token | Access token 24h — durée trop longue pour la prod | Moyenne |
+| Demandes groupées | Bulk booking non implémenté (prévu MVP+1) | Basse |
+| SSO externe | Google / Azure Entra non implémenté | Basse |
 
 ---
 
