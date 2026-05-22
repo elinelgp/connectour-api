@@ -402,7 +402,7 @@ src/
 └── main.ts                 # Point d'entrée
 
 Racine :
-├── Dockerfile              # Build multi-stage (Node 20 Alpine)
+├── Dockerfile              # Build multi-stage (Node 22 Alpine)
 ├── .dockerignore
 ├── docker-compose.yml      # PostgreSQL local
 ├── .env.example
@@ -427,8 +427,8 @@ Le `Dockerfile` utilise un build multi-stage pour minimiser la taille de l'image
 
 | Stage | Base | Rôle | Taille ≈ |
 |---|---|---|---|
-| `builder` | `node:20-alpine` | Install + compile TypeScript | ~400 MB |
-| `production` | `node:20-alpine` | Runtime uniquement (dist + node_modules prod) | ~150 MB |
+| `builder` | `node:22-alpine` | Install + compile TypeScript | ~400 MB |
+| `production` | `node:22-alpine` | Runtime uniquement (dist + node_modules prod) | ~150 MB |
 
 **Sécurité :**
 - Exécution en tant qu'utilisateur non-root (`appuser`)
